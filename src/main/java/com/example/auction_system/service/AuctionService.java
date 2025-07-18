@@ -1,20 +1,27 @@
 package com.example.auction_system.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.example.auction_system.event.BidPlacedEvent;
 import com.example.auction_system.model.Auction;
 import com.example.auction_system.repository.AuctionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 @Service // Marks this class as a Service bean
 public class AuctionService {
 
+    private static final Logger logger = LoggerFactory.getLogger(AuctionService.class);
     private final AuctionRepository auctionRepository;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -58,5 +65,23 @@ public class AuctionService {
         eventPublisher.publishEvent(event);
 
         return updatedAuction;
+    }
+
+    @Async
+    @Scheduled(fixedRate = 60000) // Runs every 60,000 milliseconds (1 minute)
+    @Transactional
+    public void closeExpiredAuctions() {
+        logger.info("Running scheduled job to close expired auctions...");
+
+        List<Auction> activeAuctions = auctionRepository.findByActive(true);
+
+        for (Auction auction : activeAuctions) {
+            if (auction.getEndTime().isBefore(LocalDateTime.now())) {
+                logger.info("Closing auction #{}: {}", auction.getId(), auction.getItemName());
+                auction.setActive(false);
+                auctionRepository.save(auction);
+                // Optional: You could publish an AuctionEndedEvent to Kafka here.
+            }
+        }
     }
 }

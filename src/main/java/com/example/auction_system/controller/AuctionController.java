@@ -13,6 +13,7 @@ import java.util.List;
 
 @RestController // Marks this class as a controller that returns JSON data
 @RequestMapping("/api/auctions") // Base URL for all endpoints in this controller
+@CrossOrigin(origins = "http://localhost:3000")
 public class AuctionController {
 
     private final AuctionService auctionService;

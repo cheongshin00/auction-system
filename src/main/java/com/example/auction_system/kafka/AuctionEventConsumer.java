@@ -5,12 +5,20 @@ import com.example.auction_system.event.BidPlacedKafkaMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
 public class AuctionEventConsumer {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionEventConsumer.class);
+    private final SimpMessagingTemplate messagingTemplate; // <-- Inject template
+
+    @Autowired
+    public AuctionEventConsumer(SimpMessagingTemplate messagingTemplate) {
+        this.messagingTemplate = messagingTemplate;
+    }
 
     // Listens for messages on the "auction-bids" topic
     @KafkaListener(topics = "auction-bids", groupId = "auction-group")
@@ -22,6 +30,14 @@ public class AuctionEventConsumer {
                 message.getBidder());
         logger.info("New Bid Placed on Auction #{}: Amount: {}, Bidder: {}",
                 internalEvent.getAuctionId(), internalEvent.getAmount(), internalEvent.getBidder());
-        // In the future, we would use this to push a WebSocket message to the frontend
+
+        // Define the WebSocket destination topic
+        String destination = "/topic/bids/" + internalEvent.getAuctionId();
+
+        // Send the event to the WebSocket topic
+        messagingTemplate.convertAndSend(destination, internalEvent);
+
+        logger.info("Pushed bid update to WebSocket destination: {}", destination);
+
     }
 }
