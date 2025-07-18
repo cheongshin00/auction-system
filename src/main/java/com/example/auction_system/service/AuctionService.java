@@ -1,5 +1,7 @@
 package com.example.auction_system.service;
 
+import com.example.auction_system.model.BidRequest;
+import com.example.auction_system.repository.BidRequestRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.example.auction_system.event.BidPlacedEvent;
@@ -23,13 +25,15 @@ public class AuctionService {
 
     private static final Logger logger = LoggerFactory.getLogger(AuctionService.class);
     private final AuctionRepository auctionRepository;
+    private final BidRequestRepository bidRequestRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     // @Autowired tells Spring to inject the AuctionRepository bean
     @Autowired
-    public AuctionService(AuctionRepository auctionRepository, ApplicationEventPublisher eventPublisher) {
+    public AuctionService(AuctionRepository auctionRepository, ApplicationEventPublisher eventPublisher, BidRequestRepository bidRequestRepository) {
         this.auctionRepository = auctionRepository;
         this.eventPublisher = eventPublisher;
+        this.bidRequestRepository = bidRequestRepository;
     }
 
     public List<Auction> getAllActiveAuctions() {
@@ -59,6 +63,9 @@ public class AuctionService {
         // Update the price
         auction.setCurrentPrice(amount);
         Auction updatedAuction = auctionRepository.save(auction);
+
+        BidRequest newBid = new BidRequest(updatedAuction, amount, bidder);
+        bidRequestRepository.save(newBid);
 
         // *** Publish the internal event ***
         BidPlacedEvent event = new BidPlacedEvent(this, auctionId, amount, bidder);

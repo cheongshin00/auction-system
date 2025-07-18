@@ -4,7 +4,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Version;
 import lombok.Data;
+
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -23,4 +25,7 @@ public class Auction {
     private BigDecimal currentPrice;
     private LocalDateTime endTime;
     private boolean active = true;
+
+    @Version // Marks this field for optimistic locking
+    private Integer version;
 }

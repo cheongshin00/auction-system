@@ -7,12 +7,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@RestController // Marks this class as a controller that returns JSON data
-@RequestMapping("/api/auctions") // Base URL for all endpoints in this controller
+@RestController
+@RequestMapping("/api/auctions")
 @CrossOrigin(origins = "http://localhost:3000")
 public class AuctionController {
 
@@ -44,12 +45,14 @@ public class AuctionController {
     }
 
     @PostMapping("/{id}/bids")
-    public ResponseEntity<Auction> placeBid(@PathVariable Long id, @RequestBody BidRequest bidRequest) {
+    public ResponseEntity<?> placeBid(@PathVariable Long id, @RequestBody BidRequest bidRequest) {
         try {
             Auction updatedAuction = auctionService.placeBid(id, bidRequest.getAmount(), bidRequest.getBidder());
             return ResponseEntity.ok(updatedAuction);
         } catch (IllegalStateException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (ObjectOptimisticLockingFailureException e){
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("This item has been updated by another user. Please refresh and try again.");
         }
     }
 }
